@@ -14,3 +14,8 @@ The file that has "ret" at the end is for retrieval, and is only doing behaviora
 Then, I was very low tech and copied pasted all to a file with all participants. This way I created the file SEL2_all_subs.
 
 Group level analysis was done using pivot tables on this file, and copying relevant data to the file data_paper_forR, found in the misc_group_level folder. The data in the file data_paper_forR is equivalent to the data in the Source Data file for the paper.
+
+## 1. PreprocessingAndModel
+
+preproc_SEL2: runs preprocessing for all participants. You need the templates in the templates folder for that to run
+preproc_SEL2_BotUp: due to a scanner mistake, two participants were scanned bottom up. This is their preproc (only slice timing correction is different)
