@@ -9,6 +9,8 @@ The scripts analyse_SEL2_scanner_* in this folder take the log files, miminaly p
 These files also create the relevant onsets.
 The file that has "ret" at the end is for retrieval, and is only doing behavioral analysis, the imaging data was not analysed (trials were not time limited).
 
+* There's a file called _SEL2_pairsRep_PrepOnsetsFromAnalyzed_ - that's the one I used to prepare the onsets for the univariate analysis of the associative learning.
+
 Then, I was very low tech and copied pasted all to a file with all participants. This way I created the file SEL2_all_subs.
 
 Group level analysis was done using pivot tables on this file, and copying relevant data to the file data_paper_forR, found in the misc_group_level folder. The data in the file data_paper_forR is equivalent to the data in the Source Data file for the paper.
