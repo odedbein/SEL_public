@@ -20,8 +20,29 @@ Group level analysis was done using pivot tables on this file, and copying relev
 preproc_SEL2: runs preprocessing for all participants. You need the templates in the templates folder for that to run
 preproc_SEL2_BotUp: due to a scanner mistake, two participants were scanned bottom up. This is their preproc (only slice timing correction is different)
 
-model_msessions_SEL2_PRE_POST_similairity: runs the models of the pre/post similarity scans. outputs a t-map for each face, in each scan. I later on average pre and post.
+model_msessions_SEL2_PRE_POST_similairity: runs the models of the pre/post similarity scans. outputs a t-map for each face, in each scan. I later on average pre and post. That's it - after that, you got your t-maps, continue to the pre_post folder.
 model_msessions_SEL2_pairsReps: This is the model that was used to run the univariate analysis on the associative learning (pairs) task.
 
 contrasts_SEL2_PRE_POST_sim_msessions: in SPM, to obtain t-maps, one needs to run contrasts after estimating the models. This does that for the pre/post similarity
 contrasts_SEL2_pairsRep_msessions: in SPM, to obtain t-maps, one needs to run contrasts after estimating the models. This does that for the univariate analysis on the associative learning (pairs) task. It uses the csv file: contrasts_SEL2_pairsRep.csv
+
+FilesRelocationPairsRep.m: this file moves the contrast files to a group folder, for group level analysis. The group level analysis is then done using SPM gui.
+
+## 1.2 Anatomical ROIs - hippocampus segmentation
+## 2. pre_post folder: Pre/post similarity analyses
+
+## 3. functional connectivity (gPPI) during associative learning
+We report functional connectivity with the left anterior hippocampus. This was done using the gPPI toolbox in matlab (McLaren et al. 2012), and some costume scripts, that are modified versions of the toolbox scripts, to adapt for the current study.
+
+gPPI_wrapper_SEL2_anatomical_roi: wrapper script that runs the analysis
+PairsRepContrasts.mat: contrasts mat needed for the analysis, runs the contrasts after conducting the gPPI models.
+PairsRep_gPPI.mat: gPPI runs using a .mat structure that has all kinds of definitions - this is it.
+SEL2_normalize_ppi_con.m: after running the gPPI in subjects' native epi space, I used this script to register them to MNI. This script uses SPM template: normalize_con_images.mat, found in the templates folder inside the functional_connectivity folder.
+
+FilesRelocationPairsRepPPI: this file copies the participants' contrast files to a group folder, for group level analysis. The group level analysis is then done using SPM gui.
+
+* note that gPPI (see 3. functional connectivity) is run after the univariate models have ran. To run the gPPI in the subject native space (because the left anterior hipp sead region was segmented anatomicaly for each participant, doesn't make sense to run the analysis in MNI space), I needed to run the univariate models on data from the associative learning that was not registered to MNI, that was done by running the model_msessions_SEL2_pairsReps scripts, only on unnormalized images (SPM calls registration to MNI "normalizaion").
+
+### 3.1 first level scripts:
+I had to modify some of the toolbox scripts to debug them, first level scripts are scripts that are used to run the analysis in the participant level. they are found in this folder.The wrapper script calls them.
+
