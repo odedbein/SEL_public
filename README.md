@@ -2,7 +2,8 @@
 
 SEL, public folder
 
-These are the scripts I used to analyze the data for Bein et al., 2020 (accepted), NatComms: *"Prior knowledge promotes hippocampal separation but cortical assimilation in the left inferior frontal gyrus". I did not clean them well enough, and also - this project is from the before/begining of my PhD. So the code is messy. Feel free to contact at oded.bein@nyu.edu Relevant data is abvailable on: https://osf.io/u2h3s/
+These are the scripts I used to analyze the data for Bein et al., 2020 (accepted), NatComms: *"Prior knowledge promotes hippocampal separation but cortical assimilation in the left inferior frontal gyrus".* I did not clean them well enough, and also - this project is from the before/begining of my PhD. So the code is messy. Feel free to contact at oded.bein@nyu.edu Relevant data is abvailable on: https://osf.io/u2h3s/
+Analysis was done primarily in SPM/matlab, with some fsl mainly for creating subjects' rois.
 
 ## 0. Behavior
 The scripts analyse_SEL2_scanner_* in this folder take the log files, miminaly process them and create xls files per participant (these are the files in the osf repository).
@@ -28,7 +29,23 @@ contrasts_SEL2_pairsRep_msessions: in SPM, to obtain t-maps, one needs to run co
 
 FilesRelocationPairsRep.m: this file moves the contrast files to a group folder, for group level analysis. The group level analysis is then done using SPM gui.
 
-## 1.2 Anatomical ROIs - hippocampus segmentation
+## 1.2 create_rois
+In the paper, we report results from anatomically segmented left anterior hippocmapus (other hippocampal regions are reported in the supplementary), as well as from rois from the functional connectivity analysis (lifg is the main one, but also AG, and more in the supplementary). The scripts I used to prepare them are in this folder.
+This was done using a mix of fsl commands and matlab code.
+Mostly, I ran these scripts by chunks, not as full scripts.
+
+SEL2_make-Anatomical_ROIs_Oded: this script runs fsl's first to segment the hippocampus, registers the epi to mprage using fsl's BBR (and inverse the matrix), and applies the transformation matrix from mprage to epi on the hippocampal subfields. Then it also copies the files and organizes, this was because I was working on it on my computer, and had to copy things to the lab's computer to continue analysis.
+
+split_hipp_axis_Oded: split the hippocampus to thirds, based on the anterior to posterior axis
+SEL2_reg2standard: does all kind of registration to standard - I think i ended up not using it. I 
+
+GetSubjSpaceROICoord: The group level rois I got from the connectivity analysis were in MNI. To obtain the similarity values, I wanted to get them back to subject space. This script did that. then, for the lifg and other cortical rois, a sphere was blown in subj space. This script uses the get_orig_coord2 script that is in this folder as well.
+* I think I also had a separated script that I used to create the single voxel roi for spheres, but it got corrupted. I didn't bother to make a new one, it's based on the same code.
+
+SEL2_apply_fast_maskOnRois: run FAST for each participant. Also has a section that and applies the grey matter mask on rois.
+
+SEL2_CreateSubSpaceSphere: create a shpere aroound a voxel in subject space. was used to create subject specific spheres for cortical rois. Create the sphere, and applies the grey matter mask that was created using fsl FAST with SEL2_apply_fast_maskOnRois.
+
 ## 2. pre_post folder: Pre/post similarity analyses
 
 ## 3. functional connectivity (gPPI) during associative learning
