@@ -37,10 +37,9 @@ Mostly, I ran these scripts by chunks, not as full scripts.
 SEL2_make-Anatomical_ROIs_Oded: this script runs fsl's first to segment the hippocampus, registers the epi to mprage using fsl's BBR (and inverse the matrix), and applies the transformation matrix from mprage to epi on the hippocampal subfields. Then it also copies the files and organizes, this was because I was working on it on my computer, and had to copy things to the lab's computer to continue analysis.
 
 split_hipp_axis_Oded: split the hippocampus to thirds, based on the anterior to posterior axis
-SEL2_reg2standard: does all kind of registration to standard - I think i ended up not using it. I 
 
 GetSubjSpaceROICoord: The group level rois I got from the connectivity analysis were in MNI. To obtain the similarity values, I wanted to get them back to subject space. This script did that. then, for the lifg and other cortical rois, a sphere was blown in subj space. This script uses the get_orig_coord2 script that is in this folder as well.
-* I think I also had a separated script that I used to create the single voxel roi for spheres, but it got corrupted. I didn't bother to make a new one, it's based on the same code.
+
 
 SEL2_apply_fast_maskOnRois: run FAST for each participant. Also has a section that and applies the grey matter mask on rois.
 
