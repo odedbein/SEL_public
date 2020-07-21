@@ -55,6 +55,19 @@ single_item_ROI_RemForgAverageBetas: same as AssNonAss, but computes similarity 
 single_item_ROI_AssNonAssAverageBetasAsymmetry: same as the two above, computes the asymmetry measure (like in left IFG, regardless of memory). This script loads the associates strucutre, rather than re-making it based on the behavioral log, if you want to do that.
 single_item_ROI_RemForgAverageBetasAsymmetry: same as above, computes the asymmetry measure separately for remembered and forgotten. Reported in the supplementary, and mentioned in the main text. This script loads the associates_RemForg strucutre, rather than re-making it based on the behavioral log, if you want to do that.
 
+### 2.1 group_level
+has the files that plot and run stats on the group level analysis (some additional analyses are done in R, file is in the misc_group_level). The scripts require first to load the relevant matlab structure created by the previous scripts (e.g., single_item_ROI_RemForgAverageBetas, each file takes its output from the relevant single_item* file ).
+
+Analyse_plot_AssNonAss_forPaper: run group level analysis,plot and stats, for the paired vs. shuffled pre to post similarity difference comparisons (this is reported in the paper for left IFG, no plot; reported in the supplementary for other rois from the hippocmpal connectivity analysis)
+
+Analyse_plot_RemForg_plot_paper: run group level analysis,plot and stats, for the the comparisons based on memory (reported for the left ant hipp in the main text, and then some other rois in the supp).
+
+Analyse_plot_AssNonAss_Assymetry: run group level analysis,plot and stats, for the asymmetry measure for paired vs. shuffled comparisons (this is reported in the paper as the main left IFG finding, and in supp for other cortical rois).
+
+Analyse_plot_RemForg_Asymmetry: same as above, but by memory (reported in the supplementary for both the hippocampus and the left IFG regions).
+
+There are two repeated measures ANOVA files I used in this folder - the scripts use one or both.. don't remember which, so I uploaded both.
+
 ## 3. functional connectivity (gPPI) during associative learning
 We report functional connectivity with the left anterior hippocampus. This was done using the gPPI toolbox in matlab (McLaren et al. 2012), and some costume scripts, that are modified versions of the toolbox scripts, to adapt for the current study.
 
