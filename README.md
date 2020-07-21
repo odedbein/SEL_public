@@ -46,6 +46,12 @@ SEL2_apply_fast_maskOnRois: run FAST for each participant. Also has a section th
 SEL2_CreateSubSpaceSphere: create a shpere aroound a voxel in subject space. was used to create subject specific spheres for cortical rois. Create the sphere, and applies the grey matter mask that was created using fsl FAST with SEL2_apply_fast_maskOnRois.
 
 ## 2. pre_post folder: Pre/post similarity analyses
+has all the analyses to grab the tstats, create the group level structure and run the stats.
+
+single_item_ROI_compute_mat_files: grabs the roi data (t-stats in all voxels in an roi) per participant, arrange them in a matlab structure.
+single_item_ROI_AssNonAssAverageBetas: uses the matlab structure created by single_item_ROI_compute_mat_files, and compute the similarity values for associated (ASS) versus shuffled pairs (NONASS) based on each participant specific pairing. Participants pairings are loaded from a behavioral file (found in the osf repository), or, you can modify the script to directly upload each participants' associates.mat file, found in the associates_strucutre folder (see below). outputs a matlab strucutre with the group results (i.e., each participant average values, to go to statistical analysis.
+* This script also exclude pairs for which participants did not recognize the famous face (see paper, Methods), using the subfunction, in the script, called ExludeUnknownFamous.
+single_item_ROI_RemForgAverageBetas: same as AssNonAss, but computes similarity based on memory. Participants pairings and memory stauts are loaded from a behavioral file (found in the osf repository), or, you can modify the script to directly upload each participants' associates_RemForg.mat file, found in the associates_strucutre folder (see below).
 
 ## 3. functional connectivity (gPPI) during associative learning
 We report functional connectivity with the left anterior hippocampus. This was done using the gPPI toolbox in matlab (McLaren et al. 2012), and some costume scripts, that are modified versions of the toolbox scripts, to adapt for the current study.
@@ -62,3 +68,7 @@ FilesRelocationPairsRepPPI: this file copies the participants' contrast files to
 ### 3.1 first level scripts:
 I had to modify some of the toolbox scripts to debug them, first level scripts are scripts that are used to run the analysis in the participant level. they are found in this folder.The wrapper script calls them.
 
+## associates_strucutre
+includes these files per participant:
+associates.mat: includes the pairing per subject
+associates_RemForg.mat: includes the pairing and the memory outcome per subject
