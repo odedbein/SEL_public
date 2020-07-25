@@ -1,4 +1,4 @@
-function single_item_ROI_RemForgAverageBetasAsymmetry()                                                                     
+ function single_item_ROI_AssNonAssAverageBetas_univariate(TextFile,analysis)                                                                    
                                              
 %+---------------------------------------
 %|
@@ -15,24 +15,16 @@ function single_item_ROI_RemForgAverageBetasAsymmetry()
 %+---------------------------------------
 
 % The script brakes after ~500 clusters with 360 betas each
+%TextFile - (0) - don't create a text file with the results, (1) - create a
+%textfile.
 
+%list of analyses names, if need to re-run:
 
-%computes whether there is an assymetry in the change of representation.
-%i.e., if madonna and its B-face got more distinct (as we saw in theleft
-%anterior hipp, did, .g., Madonna stayed the same and the B0face
-%representation changed from bbeofre to after, or did both just changed
-%apart from one another.
-%This analysis only makes sense if some difference was observed - e.g., in the left anterior hipp - famous HC<FORG
-
-%TextFile - whether to write a text file in addition to outputing the data
-%structure
-
-proj_dir='/Users/oded/research/SEL2/ANALYSIS_SPM8/';
-analysis_dir='GROUP/Similarity/ROI_analysis_unnormalized/AnalysisTValsAllTrials';
-%analysis='gPPI_lant_hipp_F_NF_spheres';
-analysis='anatomical_hipp';
-mat_files_dir= fullfile(proj_dir,analysis_dir,'subs_mat_files');
-Results_folder=fullfile(proj_dir,analysis_dir,'Results','Average_betas','asymmetry_April2020');
+%clear all;
+base_dir='G:\shoshi\Shoshi_Backup_(C)\fMRI_Data\SEL2\ANALYSIS_SPM8';
+mat_files_dir= fullfile(base_dir,'GROUP\Similarity\ROI_analysis_unnormalized\AnalysisTValsAllTrials\subs_mat_files');
+Results_folder='Results';
+Results_folder=fullfile(pwd,Results_folder,'Average_betas');
 if ~isdir(Results_folder), mkdir(Results_folder); end
 betas_in_session=48;
 items_in_cond=12;
@@ -41,7 +33,7 @@ num_conds=2;
 CWR=pwd;
 
 subs= {...
-    '200615TF';...
+     '200615TF';...
      '230615ZD';...
      '230615EF';...
      '230615RE';...
@@ -51,37 +43,38 @@ subs= {...
      '110715DA';...
      '110715YB';...
      '110715YL';...
-       '240715TP';...
-       '250715LK';...
-       '250715AG';...
-       '250715EB';...
-       '080815EF';...
-       '080815LR';...
-       '080815RM';...
-       '080815TN';...
-       '110815EZ';...
+     '240715TP';...
+     '250715LK';...
+     '250715AG';...
+     '250715EB';...
+     '080815EF';...
+     '080815LR';...
+     '080815RM';...
+     '080815TN';...
+     '110815EZ';...
+
     }; 
 
 
-%     'gPPI_lant_hipp_F_NF_lIFG_sphereBlownInSubjSpace_12_gm',...
 masks= {...
-    'epi_lhipp_ant';...
-    };
+'gPPI_lant_hipp_F_NF_lIFG_sphereBlownInSubjSpace_12';...
+        };
+
+
+ResultsAssNonAss={};
+ResultsAssNonAssOnlyNum={};
 
 clust_num=length(masks);
 clust_start=1;
-num_comp=5; 
-sub_cor_vals=nan(length(subs),num_conds*num_comp*2,(clust_num-clust_start+1)); %numconds*5 - for all comparisons,and another time *4 for sessions 1,2, 3,4
+num_comp=2; 
+sub_cor_vals=nan(length(subs),num_conds*num_comp*2,(clust_num-clust_start+1)); %for all comparisons, and conditions, and another time *2 for sessions 1,2 or 3,4
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%claculate similarity for culster per subject
+%claculate univariate activation for culster per subject
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    for j=1:length(subs)
       subject=char(subs{j});
-      load(fullfile(mat_files_dir,sprintf('%s_associates_RemForg',subject)));
-        associates=cell2mat(workingmat(2:end,29:end));
-        associates=associates(find(associates(:,1)),:);
-        associates=sortrows(associates,1);
+      associates=read_ret_log(subject,mat_files_dir); %this function create a matrix with item numbers, their pair, and whether they were
       %remembered/forgotten see the function below
       for i=clust_start:clust_num
          
@@ -94,19 +87,17 @@ sub_cor_vals=nan(length(subs),num_conds*num_comp*2,(clust_num-clust_start+1)); %
          
          if exist (file_name)
          load(file_name, 'clust_mat_sim'); %this mat has voxels in rows and betas in columns
-         data=clust_mat_sim;
-         PREdata_av=(data(:,1:betas_in_session)+data(:,betas_in_session+1:end))/2;
-         voxelsPRE=(clust_mat_sim(:,1)~=0);%to remove Nans
-         %PREsim_matrix=corrcoef(data_av);
+         data=clust_mat_sim(find(clust_mat_sim(:,1)),:);%to remove Nans
+         if size(data,1)<10 %less than 10 voxels
+             display('region has less than 10 voxels');
+         else
+         data_av=(data(:,1:betas_in_session)+data(:,betas_in_session+1:end))/2;
+         PREunivar=mean(data_av);
          file_name=sprintf('POST_%s_%s', subject,mask_nm);
          load(file_name, 'clust_mat_sim'); %this mat has voxels in rows and betas in columns
-         data=clust_mat_sim;%to remove Nans
-         voxelsPOST=(clust_mat_sim(:,1)~=0);%to remove Nans
-         all_vox=((voxelsPRE+voxelsPOST)==2);
-         POSTdata_av=(data(:,1:betas_in_session)+data(:,betas_in_session+1:end))/2;
-         data_av=[PREdata_av(all_vox,:) POSTdata_av(all_vox,:)];
-         
-         sim_matrix=corrcoef(data_av);
+         data=clust_mat_sim(find(clust_mat_sim(:,1)),:);%to remove Nans
+         data_av=(data(:,1:betas_in_session)+data(:,betas_in_session+1:end))/2;
+         POSTunivar=mean(data_av);
          
          %next, you want to classify and select for averaging items based on their condition and
          %subsequent memory status
@@ -117,15 +108,10 @@ sub_cor_vals=nan(length(subs),num_conds*num_comp*2,(clust_num-clust_start+1)); %
          % Famous F 1-12: 1-12
          % NF F 1-12: 13-24
          % Bface F 1-24: 25-48
-         
-         
-         
-         %The following section computes average similarity of the remembered,  HC (High confidence),forgottern and subject's choice (wwhat the subject
-         %said that apeared regardless of whther she was right or wrong.
-         %order of columns in the output file is: FF1REM FF1HC FF1FORG
-         %FF1SUBCHOICE FF1SUBDIST multiplied by conditions,
-         %and all repeated for sessions 1,2,3,4 correlations
-         %%ADD THE ASSOCIATES STRUCTURE
+         % Task AFace Famous 1-3:49-51
+         % Task AFace NonFamous 1-3:52-54
+         % Task BFace Famous 1-6:55-60
+         % Task BFace NonFamous 1-6:61-66
          
          for cond=1:num_conds
              curr_items=[1:1:items_in_cond]+((cond-1)*items_in_cond); %select the items in the current condition
@@ -134,77 +120,28 @@ sub_cor_vals=nan(length(subs),num_conds*num_comp*2,(clust_num-clust_start+1)); %
                 curr_items=ExludeUnknownFamous(curr_items,subject);
              end
              
-             rem=(associates(curr_items,3))==2;
-             HC=associates(curr_items,4)~=1; %no 'maybe' response
-             HC(~rem)=0; %%%
-             HC(associates(curr_items,4)==0)=0;
-             forg=(associates(curr_items,3))==1;
-             subchoice=associates(curr_items,5);
-             subdist1=associates(curr_items,6);
-             subdist2=associates(curr_items,7);
-             sub_gave_resp=find(associates(curr_items,5));%this is null if subject did not provide a response
+             %PRE univar AFace and BFace:
+             mean_univar=PREunivar(curr_items); %AFace
+             sub_cor_vals(j,(cond-1)*num_comp+1,i)=mean(mean_univar);
+             mean_univar=PREunivar(associates(curr_items,2)); %BFace
+             sub_cor_vals(j,(cond-1)*num_comp+2,i)=mean(mean_univar);
              
-             
-             %AFace POST with BFace PRE:
-             %REMEMBERED: 
-             cor_mat1=sim_matrix(associates(curr_items(rem),1)+betas_in_session,associates(curr_items(rem),2));
-             sub_cor_vals(j,(cond-1)*num_comp+1,i)=mean(diag(cor_mat1));
             
-             if ~isempty(find(HC))
-             %HC:
-             cor_mat1=sim_matrix(associates(curr_items(HC),1)+betas_in_session,associates(curr_items(HC),2));
-             sub_cor_vals(j,(cond-1)*num_comp+2,i)=mean(diag(cor_mat1));
+             %%%%%% COMPUTE SIMILARITY IN SESSIONS 3-4
              
-             end
-             
-             %FORGOTTEN:
-             cor_mat1=sim_matrix(associates(curr_items(forg),1)+betas_in_session,associates(curr_items(forg),2));
-             sub_cor_vals(j,(cond-1)*num_comp+3,i)=mean(diag(cor_mat1));
-             
-             %SUBCHOICE:
-             cor_mat1=sim_matrix(curr_items(sub_gave_resp)+betas_in_session,subchoice(sub_gave_resp));
-             sub_cor_vals(j,(cond-1)*num_comp+4,i)=mean(diag(cor_mat1));
-             
-             %SUBDIST:
-             cor_mat11=sim_matrix(curr_items(sub_gave_resp)+betas_in_session,subdist1(sub_gave_resp));
-             cor_mat12=sim_matrix(curr_items(sub_gave_resp)+betas_in_session,subdist2(sub_gave_resp));
-             sub_cor_vals(j,(cond-1)*num_comp+5,i)=mean([diag(cor_mat11)' diag(cor_mat12)']);
-             
-             % BFace POST with AFace PRE:
-             
-             %REMEMBERED:
-             cor_mat1=sim_matrix(associates(curr_items(rem),1),associates(curr_items(rem),2)+betas_in_session);
-             sub_cor_vals(j,num_conds*num_comp+(cond-1)*num_comp+1,i)=mean(diag(cor_mat1));
+             %POST univar AFace and BFace:
+             mean_univar=POSTunivar(curr_items); %AFace
+             sub_cor_vals(j,num_conds*num_comp+(cond-1)*num_comp+1,i)=mean(mean_univar);
+             mean_univar=POSTunivar(associates(curr_items,2)); %BFace
+             sub_cor_vals(j,num_conds*num_comp+(cond-1)*num_comp+2,i)=mean(mean_univar);
             
-             if ~isempty(find(HC))
-             %HC:
-             cor_mat1=sim_matrix(associates(curr_items(HC),1),associates(curr_items(HC),2)+betas_in_session);
-             sub_cor_vals(j,num_conds*num_comp+(cond-1)*num_comp+2,i)=mean(diag(cor_mat1));
-             
-             end
-             
-             %FORGOTTEN:
-             cor_mat1=sim_matrix(associates(curr_items(forg),1),associates(curr_items(forg),2)+betas_in_session);
-             sub_cor_vals(j,num_conds*num_comp+(cond-1)*num_comp+3,i)=mean(diag(cor_mat1));
-             
-             %SUBCHOICE:
-             cor_mat1=sim_matrix(curr_items(sub_gave_resp),subchoice(sub_gave_resp)+betas_in_session);
-             sub_cor_vals(j,num_conds*num_comp+(cond-1)*num_comp+4,i)=mean(diag(cor_mat1));
-             
-             %SUBDIST:
-             cor_mat11=sim_matrix(curr_items(sub_gave_resp),subdist1(sub_gave_resp)+betas_in_session);
-             cor_mat12=sim_matrix(curr_items(sub_gave_resp),subdist2(sub_gave_resp)+betas_in_session);
-             sub_cor_vals(j,num_conds*num_comp+(cond-1)*num_comp+5,i)=mean([diag(cor_mat11)' diag(cor_mat12)']);
          end %ends the conditions loop
+         end %ends the less than 10 voxels per region
          end %ends the conditional of whether the region exists or not in the specific subject
       end%ends all the clusters loop
 
    end%ends all the subjects loop
-    header={'subjects' 'FF_APOST_BPRE_REM' 'FF_APOST_BPRE_HC' 'FF_APOST_BPRE_FORG' 'FF_APOST_BPRE_SUBCHOICE' 'FF_APOST_BPRE_SUBDIST'...
-                      'NFF_APOST_BPRE_REM' 'NFF_APOST_BPRE_HC' 'NFF_APOST_BPRE_FORG' 'NFF_APOST_BPRE_SUBCHOICE' 'NFF_APOST_BPRE_SUBDIST'...
-                      'FF_BPOST_APRE_REM' 'FF_BPOST_APRE_HC' 'FF_BPOST_APRE_FORG' 'FF_BPOST_APRE_SUBCHOICE' 'FF_BPOST_APRE_SUBDIST'...
-                      'NFF_BPOST_APRE_REM' 'NFF_BPOST_APRE_HC' 'NFF_BPOST_APRE_FORG' 'NFF_BPOST_APRE_SUBCHOICE' 'NFF_BPOST_APRE_SUBDIST'...
-           };
+   header={'subjects' 'FF12ASS_A' 'FF12ASS_B' 'NFF12ASS_A' 'NFF12ASS_B' 'FF34ASS_A' 'FF34ASS_B' 'NFF34ASS_A' 'NFF34ASS_B'};
    Output=cell(length(subs)+1,num_conds*num_comp*2);
    Output(1,1:numel(header))=header;
    Output(2:numel(subs)+1,1)=subs;
@@ -213,18 +150,19 @@ sub_cor_vals=nan(length(subs),num_conds*num_comp*2,(clust_num-clust_start+1)); %
    %write a file for each cluster
    for i=1:clust_num
       mask_nm=masks{i};
-      ResultsRemForgOnlyNum.(mask_nm)=sub_cor_vals(:,:,i);
+      ResultsAssNonAssOnlyNum.(mask_nm)=sub_cor_vals(:,:,i);
       curr_cor_mat=mat2cell(sub_cor_vals(:,:,i),cell_rows,cell_cols);
       Output(2:end,2:end)=curr_cor_mat;
-      ResultsRemForg.(mask_nm)=Output;
-%       if TextFile
-%           file=sprintf('resultsRemForgAvBetasAsymmetry_%s',mask_nm);
-%           outputfile=fullfile(Results_folder,file);
-%           xlswrite(outputfile,Output);
-%       end
+      ResultsAssNonAss.(mask_nm)=Output;
+      
+      if TextFile
+          file=sprintf('resultsRemForgAvBetas_univariate_%s',mask_nm);
+          outputfile=fullfile(Results_folder,file);
+          xlswrite(outputfile,Output);
+      end
    end
-   save(fullfile(Results_folder,sprintf('%s_RemForg.mat',analysis)),'ResultsRemForgOnlyNum','ResultsRemForg');
-
+   save(fullfile(Results_folder,sprintf('%s_AssNonAss_univariate.mat',analysis)),'ResultsAssNonAssOnlyNum','ResultsAssNonAss');
+   
    cd(CWR);
 end
 
@@ -260,7 +198,7 @@ distractor2=[];
 %stop-point after the working mat line (line 249 before the loop starts),
 %and then going over the loop to understand what it does. it is very clear
 %once having the workingmat infront of the eyes.
-Root = 'C:\fMRI_Data\SEL2\behavioral\Analysis\Retrieval'; % Location of file to be analyzed
+Root = 'G:\shoshi\Shoshi_Backup_(C)\fMRI_Data\SEL2\behavioral\Analysis\Retrieval'; % Location of file to be analyzed
 fname = sprintf('analyzed_%s-SEL2_scanner_CR.xlsx',subject); % Name of outfile to be produced
 file = fullfile(Root,fname);
 

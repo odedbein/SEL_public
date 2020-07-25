@@ -1,0 +1,223 @@
+---
+title: "SEL fMRI R analysis notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r setup}
+#load libraries
+library(car)
+#library(afex)
+library(dplyr)
+library(Matrix)
+library(lme4)
+#install.packages("xlsx")
+#library(xlsx)
+library(readxl)
+library(effsize)
+library(standardize)
+library(ggplot2)
+library(knitr)
+library(reshape)
+library(sjstats)
+#library(heplots)
+#projct directories
+proj_dir <- sprintf("/Volumes/data/Bein/SEL/SEL_public/misc_group_level/")
+setwd(proj_dir)
+knitr::opts_knit$set(root.dir = proj_dir)
+
+```
+
+```{r}
+#control for univariate activation in the l ant hipp
+setwd(proj_dir)
+#first, run the glm w/o anything else:
+#load the data:
+
+get_data <- read_excel("SOURCE_DATA.xlsx", sheet = "allhipp_memory")
+
+#extract just the lant_hipp data:
+d=get_data[get_data$roi == 'left_ant',]
+n=nrow(d)
+curr_data <- data.frame(
+    pk = c(rep('FN', n*2),rep('NN', n*2)),
+    mem = rep(c(rep('HC', n),rep('miss', n)),2),
+    subject = factor(rep(1:n, 4)),
+    y = c(d$FF_HC, d$FF_FORG,d$NFF_HC, d$NFF_FORG))
+
+## control for univariate
+#first, get the data and check for invaraite effects:
+d_univar <- read_excel("SOURCE_DATA.xlsx", sheet = "lant_hipp_univar_memory")
+n=nrow(d_univar)
+univar_data <- data.frame(
+    pre_post=c(rep('pre', n*2*2*2),rep('post', n*2*2*2)),
+    pk = rep(c(rep('FN', n*2*2),rep('NN', n*2*2)),2),
+    mem = rep(c(rep('HC', n*2),rep('miss', n*2)),2*2),
+    AB = rep(c(rep('A', n),rep('B', n)),2*2*2),
+    subject = factor(rep(1:n, 2*2*2*2)),
+    y = c(d_univar$FF12HC_A, d_univar$FF12HC_B, d_univar$FF12FORG_A, d_univar$FF12FORG_B,
+          d_univar$NFF12HC_A, d_univar$NFF12HC_B, d_univar$NFF12FORG_A, d_univar$NFF12FORG_B,
+          d_univar$FF34HC_A, d_univar$FF34HC_B, d_univar$FF34FORG_A, d_univar$FF34FORG_B,
+          d_univar$NFF34HC_A, d_univar$NFF34HC_B, d_univar$NFF34FORG_A, d_univar$NFF34FORG_B))
+
+#ANOVA:
+print("anova for similarity differences lant_hipp")
+results.rmanova=aov(y ~ pk*mem + Error(subject/(pk*mem)), data = univar_data)
+print(summary(results.rmanova))
+
+
+print("anova for univariate activation lant_hipp")
+results.rmanova=aov(y ~ pre_post*pk*mem*AB + Error(subject/(pre_post*pk*mem*AB)), data = univar_data)
+print(summary(results.rmanova))
+
+#control for univariate activation, by checking that the interaction is significant in a model together with the univariate activation.
+
+#structure the data as needed:
+pre_A=c(d_univar$FF12HC_A, d_univar$FF12FORG_A, d_univar$NFF12HC_A, d_univar$NFF12FORG_A)
+pre_B=c(d_univar$FF12HC_B, d_univar$FF12FORG_B, d_univar$NFF12HC_B, d_univar$NFF12FORG_B)
+post_A=c(d_univar$FF34HC_A, d_univar$FF34FORG_A, d_univar$NFF34HC_A, d_univar$NFF34FORG_A)
+post_B=c(d_univar$FF34HC_B, d_univar$FF34FORG_B, d_univar$NFF34HC_B, d_univar$NFF34FORG_B)
+curr_data=cbind(curr_data,pre_A,pre_B,post_A,post_B,Apostpre=post_A-pre_A,Bpostpre=post_B-pre_B)
+
+
+curr_data <- curr_data %>%
+        mutate(scaled_Apostpre = scale_by(Apostpre ~ subject, curr_data)) %>%
+        mutate(scaled_Bpostpre = scale_by(Bpostpre ~ subject, curr_data)) 
+
+## first, the pre-post difference:
+model_all=aov(y~pk*mem+Apostpre+Bpostpre+Error(subject/(pk*mem)),data = curr_data)
+summary(model_all)
+eta_sq(model_all, partial = TRUE)
+
+#second, each pre/pro separately, without the interaction - this is reported 08/20:
+model_all=aov(y~pk*mem+pre_A+pre_B+post_A+post_B+Error(subject/(pk*mem)),data=curr_data)
+summary(model_all)
+eta_sq(model_all, partial = TRUE)
+
+###### control for pairwise comparisons ######
+
+#within HC, compare FN to NN: this works great
+d=curr_data[curr_data$mem == 'HC',]
+model_all=aov(y~pk+Apostpre+Bpostpre+Error(subject/pk),d)
+summary(model_all)
+eta_sq(model_all, partial = TRUE)
+
+#this works great
+d=curr_data[curr_data$mem == 'HC',]
+model_all=aov(y~pk+pre_A+pre_B+post_A+post_B+Error(subject/pk),d)
+summary(model_all)
+
+
+#within FN, compare HC to FORG:
+d=curr_data[curr_data$pk == 'FN',]
+#this works:
+model_all=aov(y~mem+Apostpre+Bpostpre+Error(subject/mem),d)
+summary(model_all)
+eta_sq(model_all, partial = TRUE)
+
+#this works
+model_all=aov(y~mem+pre_A+pre_B+post_A+post_B+Error(subject/mem),d)
+summary(model_all)
+eta_sq(model_all, partial = TRUE)
+
+#within NN, compare HC to FORG:
+d=curr_data[curr_data$pk == 'NN',]
+#this works:
+model_all=aov(y~mem+subject+Apostpre+Bpostpre+Error(subject/mem),d)
+summary(model_all)
+eta_sq(model_all, partial = TRUE)
+
+#this works
+model_all=aov(y~mem+pre_A+pre_B+post_A+post_B+Error(subject/mem),d)
+summary(model_all)
+eta_sq(model_all, partial = TRUE)
+
+
+```
+
+```{r}
+#lifg 12mm Asymmetry - controlling for univariate analysis:
+
+#regular lme, without univariate:
+get_data <- read_excel("data_paper_forR.xlsx", sheet = "lifg_12mm_assymetry")
+n=nrow(get_data)
+#set up data for ANOVA:
+curr_data <- data.frame(
+    #FN_NN = factor(rep(1:2, each=19*2)),
+    pk = c(rep('FN', n*2),rep('NN', n*2)),
+    ass = rep(c(rep('ASS', n),rep('NONASS', n)),2),
+    #subject = factor(rep(logRTsHalvesLearning$`Row Labels`, 4)),
+    subject = factor(rep(1:n, 4)),
+    y = c(get_data$FF_ASS_BtoA_toB, get_data$FF_NONASS_BtoA_AtoB ,get_data$NF_ASS_BtoA_AtoB,
+          get_data$NF_NONASS_BtoA_AtoB))
+
+
+## control for univariate
+#first, get the data and check for univaraite effects:
+d_univar <- read_excel("data_paper_forR.xlsx", sheet = "lifg_12mm_univar")
+n=nrow(d_univar)
+univar_data <- data.frame(
+    pre_post=c(rep('pre', n*2*2),rep('post', n*2*2)),
+    pk = rep(c(rep('FN', n*2),rep('NN', n*2)),2),
+    AB = rep(c(rep('A', n),rep('B', n)),2*2),
+    subject = factor(rep(1:n, 2*2*2)),
+    y = c(d_univar$FF12ASS_A, d_univar$FF12ASS_B, d_univar$NFF12ASS_A, d_univar$NFF12ASS_B,
+          d_univar$FF34ASS_A, d_univar$FF34ASS_B, d_univar$NFF34ASS_A, d_univar$NFF34ASS_B))
+
+#ANOVA:
+print("anova for univariate activation lifg_12mm")
+results.rmanova=aov(y ~ pre_post*pk*AB + Error(subject/(pre_post*pk*AB)), data = univar_data)
+print(summary(results.rmanova))
+
+#control for univariate activation, by checking that the interaction is significant in a model together with the univariate activation.
+
+#structure the data as needed:
+pre_A=c(d_univar$FF12ASS_A, d_univar$NFF12ASS_A)
+pre_B=c(d_univar$FF12ASS_B, d_univar$NFF12ASS_B)
+post_A=c(d_univar$FF34ASS_A, d_univar$NFF34ASS_A)
+post_B=c(d_univar$FF34ASS_B, d_univar$NFF34ASS_B)
+
+#since I have no activation for "nonass" a way to control would be to do it for the difference between ass-nonass
+curr_data <- data.frame(
+    #FN_NN = factor(rep(1:2, each=19*2)),
+    pk = c(rep('FN', n),rep('NN', n)),
+    subject = factor(rep(1:n, 2)),
+    pre_A,
+    pre_B,
+    post_A,
+    post_B,
+    Apostpre=post_A-pre_A,
+    Bpostpre=post_B-pre_B,
+    y = c(get_data$FF_ASS_BtoA_toB-get_data$FF_NONASS_BtoA_AtoB,
+          get_data$NF_ASS_BtoA_AtoB-get_data$NF_NONASS_BtoA_AtoB))
+
+curr_data <- curr_data %>%
+        mutate(scaled_Apostpre = scale_by(Apostpre ~ subject, curr_data)) %>%
+        mutate(scaled_Bpostpre = scale_by(Bpostpre ~ subject, curr_data)) 
+
+#only for FN - control for the t-tests, note that curr_data is ass-nonass difference:
+d=cbind(curr_data[curr_data$pk == 'FN',],raw_asymm=get_data$FF_ASS_BtoA_toB)
+#models:
+fit<-lm(y ~ Apostpre+Bpostpre,d) 
+summary(fit)
+
+fit<-lm(y ~ pre_A+pre_B+post_A+post_B,d)
+summary(fit)
+
+#for diffrence from 0:
+fit<-lm(raw_asymm ~ Apostpre+Bpostpre,d)
+summary(fit)
+
+fit<-lm(raw_asymm ~ pre_A+pre_B+post_A+post_B,d) 
+summary(fit)
+
+```
