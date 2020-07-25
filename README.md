@@ -123,6 +123,16 @@ Mostly, the analyses scripts above created a data structure with all subjects an
 
 * AvBetas_PrePost_Mem_Asym_single_items_gPPI_lant_hipp_F_NF_lIFG_sphereBlownInSubjSpace_12_gm, AvBetas_PrePost_Mem_Asym_single_items_epi_lhipp_ant: these are the files used to run the correlation btw hipp and lifg, reported in Supp Fig. 2
 
+### pixelwise similarity files:
+
+We used pixelwise similarity to compute and control the visual similarity of our stimuli.
+We used two measures, with colored images (some average over the RGB values in each voxel), and with gray-scale images (how it was used before, see refs in the paper).
+As detailed in the paper, we equated similarity between A-faces in both conditions, and the similarity of A-faces to all B-faces across PK and n-PK pair types.
+The 4 pixelwise_similarity scripts are doing the two measurs, for each of the two comparisons.
+The  pixelwise_similarity*.mat files have data produced by the scripts.
+The Excel file "SEL_pixelwise_similarity" has all the data and the comparisons.
+
+
 
 ## associates_strucutre
 includes these files per participant:
