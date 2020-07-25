@@ -53,7 +53,9 @@ single_item_ROI_AssNonAssAverageBetas: uses the matlab structure created by sing
 * This script also exclude pairs for which participants did not recognize the famous face (see paper, Methods), using the subfunction, in the script, called ExludeUnknownFamous.
 single_item_ROI_RemForgAverageBetas: same as AssNonAss, but computes similarity based on memory. Participants pairings and memory stauts are loaded from a behavioral file (found in the osf repository), or, you can modify the script to directly upload each participants' associates_RemForg.mat file, found in the associates_strucutre folder (see below).
 single_item_ROI_AssNonAssAverageBetasAsymmetry: same as the two above, computes the asymmetry measure (like in left IFG, regardless of memory). This script loads the associates strucutre, rather than re-making it based on the behavioral log, if you want to do that.
+
 single_item_ROI_RemForgAverageBetasAsymmetry: same as above, computes the asymmetry measure separately for remembered and forgotten. Reported in the supplementary, and mentioned in the main text. This script loads the associates_RemForg strucutre, rather than re-making it based on the behavioral log, if you want to do that.
+
 
 ### 2.1 group_level
 has the files that plot and run stats on the group level analysis (some additional analyses are done in R, file is in the misc_group_level). The scripts require first to load the relevant matlab structure created by the previous scripts (e.g., single_item_ROI_RemForgAverageBetas, each file takes its output from the relevant single_item* file ).
@@ -64,9 +66,30 @@ Analyse_plot_RemForg_plot_paper: run group level analysis,plot and stats, for th
 
 Analyse_plot_AssNonAss_Assymetry: run group level analysis,plot and stats, for the asymmetry measure for paired vs. shuffled comparisons (this is reported in the paper as the main left IFG finding, and in supp for other cortical rois).
 
-Analyse_plot_RemForg_Asymmetry: same as above, but by memory (reported in the supplementary for both the hippocampus and the left IFG regions).
+Analyse_plot_RemForg_Asymmetry: run group level analysis,plot and stats, for the asymmetry measure for remembered vs. forgoten. Reported in the supplementary note 7.
+
+* The supplementary figures 5 and 6 (and the relevant analysis in supplementary notes 8 and 9, correspondingly) were also created using these scripts, but with uploading the data from the relevant rois.
+
+* The supplementary Note 5 (pre and post values in the left anterior hipp): this is produced by the Analyse_plot_RemForg_plot_paper script.
 
 There are two repeated measures ANOVA files I used in this folder - the scripts use one or both.. don't remember which, so I uploaded both.
+
+#### files for supplementary analyses:
+Analyse_plot_AssNonAss_Assymetry_plot_each_score_supp: this plots and run analyses for figure 4 and related note 6. These are the values that compose the asymmetry.
+
+Analyse_plot_RemForg_Asymmetry: same as above, but by memory (reported in the supplementary for both the hippocampus and the left IFG regions).
+
+PrePostAssRemForgAndAsymmetryAverageBetas_single_items: this file creates the pairs data for the correlation btw hipp and lifg, reported in supp. fig. 2. The xlsx files it creates are also provided in the misc group files. Builds on the the matfiles per participant (created in section 3).
+
+single_item_ROI_RemForgAverageBetas_subsample_trials: for the analysis reported in supp fig. 3, and note 4. This creates the distribution of values by subsampling trials to control for differnet numbers of trials in the rem/forg bins in the hipp analysis. Note that some things are copied from prior code, so there might be some unused variables/chunk of codes.
+
+Analyse_plot_RemForg_subsampling_for_supp: this file plots and does some summary measures on the distribution of samples created by the previous script single_item_ROI_RemForgAverageBetas_subsample_trials. 
+
+SEL2_control_univar_analysis_for_paper_linear_regressions: uses the structures created by the previous script, and runs the analyses. The outputs of the previous scripts were copied to the xlsx file i used for the analysis, and are to be found in SOURCE_DATA.xlsx file
+
+RemForg_Rev2Analysis_FpostFpreSim: related to supp note 10. Comparing a face to itself from before and after learning. This script gather the values and create the group level strucutre for the next script.
+
+Analyse_plot_Rev2Analysis_FpostFpreSim: related to supp note 10. this script takes the structure created by RemForg_Rev2Analysis_FpostFpreSim and run group level analysis.
 
 ## 3. functional connectivity (gPPI) during associative learning
 We report functional connectivity with the left anterior hippocampus. This was done using the gPPI toolbox in matlab (McLaren et al. 2012), and some costume scripts, that are modified versions of the toolbox scripts, to adapt for the current study.
@@ -82,6 +105,15 @@ FilesRelocationPairsRepPPI: this file copies the participants' contrast files to
 
 ### 3.1 first level scripts:
 I had to modify some of the toolbox scripts to debug them, first level scripts are scripts that are used to run the analysis in the participant level. they are found in this folder.The wrapper script calls them.
+
+## misc group level
+Mostly, the analyses scripts above created a data structure with all subjects and all bins/conditions etc, and did most of the group level stats and plots. This folder does the group level analyses for some analyses, as is explained in the different chunks of code in SEL_analysis_for_paper code.
+
+* SOURCE_DATA.xlsx: SEL2_analysis_for_paper script reads the group data from that file - which is copy paste from data structures created through the MATLAB files. it has group level data - it is identical to the SOURCE_DATA file provided with the paper, only I added some sheets that were not in figures/weren't requested in the source data file.
+* SEL2_analysis_for_paper:group level stats and plots
+
+* AvBetas_PrePost_Mem_Asym_single_items_gPPI_lant_hipp_F_NF_lIFG_sphereBlownInSubjSpace_12_gm, AvBetas_PrePost_Mem_Asym_single_items_epi_lhipp_ant: these are the files used to run the correlation btw hipp and lifg, reported in Supp Fig. 2
+
 
 ## associates_strucutre
 includes these files per participant:
