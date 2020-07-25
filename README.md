@@ -25,6 +25,9 @@ model_msessions_SEL2_PRE_POST_similairity: runs the models of the pre/post simil
 model_msessions_SEL2_pairsReps: This is the model that was used to run the univariate analysis on the associative learning (pairs) task.
 
 contrasts_SEL2_PRE_POST_sim_msessions: in SPM, to obtain t-maps, one needs to run contrasts after estimating the models. This does that for the pre/post similarity
+
+model_msessions_SEL2_pairsReps: This is the model that was used to run the univariate analysis on the associative learning (pairs) task.
+
 contrasts_SEL2_pairsRep_msessions: in SPM, to obtain t-maps, one needs to run contrasts after estimating the models. This does that for the univariate analysis on the associative learning (pairs) task. It uses the csv file: contrasts_SEL2_pairsRep.csv
 
 FilesRelocationPairsRep.m: this file moves the contrast files to a group folder, for group level analysis. The group level analysis is then done using SPM gui.
@@ -105,6 +108,12 @@ FilesRelocationPairsRepPPI: this file copies the participants' contrast files to
 
 ### 3.1 first level scripts:
 I had to modify some of the toolbox scripts to debug them, first level scripts are scripts that are used to run the analysis in the participant level. they are found in this folder.The wrapper script calls them.
+
+## 4. Associative learning univariate activation
+
+This analysis is reported in Supp. Note 11. Whole brain univariate analysis, during the associative learning task.
+
+The relevant scripts are described in section 1, PreprocessingAndModel. Group level analysis was done using SPM's gui, and the specific comparisons are described in the Supplementary Note 11.
 
 ## misc group level
 Mostly, the analyses scripts above created a data structure with all subjects and all bins/conditions etc, and did most of the group level stats and plots. This folder does the group level analyses for some analyses, as is explained in the different chunks of code in SEL_analysis_for_paper code.
