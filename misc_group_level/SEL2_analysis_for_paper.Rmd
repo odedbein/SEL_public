@@ -1,0 +1,390 @@
+---
+title: "SEL fMRI R analysis notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+## set up
+```{r setup}
+# clear workspace
+rm(list = ls())
+
+#load libraries
+library(tidyr)
+library(dplyr)
+library(Matrix)
+library(lme4)
+#install.packages("xlsx")
+#library(xlsx)
+library(standardize)
+library(readxl)
+library(effsize)
+library(ggplot2)
+library(knitr)
+library(reshape)
+library(sjstats)
+library(ggeffects)
+library(ggpubr)
+#library(heplots)
+
+#projct directories
+proj_dir <- sprintf("/Volumes/data/Bein/SEL/SEL_public/misc_group_level/")
+setwd(proj_dir)
+knitr::opts_knit$set(root.dir = proj_dir)
+
+```
+
+## encoding RTs - gLMM
+```{r}
+#THIS IS REPORTED, Supplementary Figure 1, Supplementary Note 1.
+#analyse behavior - encoding RT - using gLMM with the inverse gaussian function (Lo et al. 2015)
+getwd()
+#check source_data_file
+DataLearning <- read_excel("SOURCE_DATA.xlsx", sheet = "Supp_fig1")
+n=length(unique(DataLearning$Subject)) #19
+curr_data<-DataLearning
+
+#now clean things up  
+curr_data<-curr_data[curr_data$`familiar?`==1,]
+curr_data<-curr_data[curr_data$`Changed response`==0,]
+curr_data<-curr_data[curr_data$`RTOutliers(3SD)`==0,]
+curr_data<-curr_data[curr_data$Response=="'correct'",]
+curr_data<-curr_data[!(is.na(curr_data$Subject)),]
+
+curr_data<-curr_data %>%
+  mutate(RTms=as.numeric(`RT(ms)`)/10) %>%
+  mutate(pk = factor(`condition(str)`))
+
+
+##model:
+null_mdl=glmer(RTms ~ (1 | Subject),data = curr_data,family = inverse.gaussian(link = 'identity'))
+pk_mdl=glmer(RTms ~ pk + (1 | Subject),data = curr_data,family = inverse.gaussian(link = 'identity'))
+rep_mdl=glmer(RTms ~ True_repetitions + (1 | Subject),data = curr_data,family = inverse.gaussian(link = 'identity'))
+pk_and_rep_mdl=glmer(RTms ~ pk+True_repetitions + (1 | Subject),data = curr_data,family = inverse.gaussian(link = 'identity'))
+pk_by_rep_mdl=glmer(RTms ~ pk*True_repetitions + (1 | Subject),data = curr_data,family = inverse.gaussian(link = 'identity'))
+
+anova(null_mdl,rep_mdl)
+anova(null_mdl,pk_mdl)
+anova(rep_mdl,pk_and_rep_mdl)
+anova(pk_mdl,pk_and_rep_mdl)
+anova(pk_and_rep_mdl,pk_by_rep_mdl)
+
+# plot:
+colors_pk <- c(rgb(47/255,	85/255,	151/255),rgb(237/255,	125/255,	47/255))
+d<-curr_data[curr_data$pk == "'Famous'",]
+g <- ggplot(d, aes(x=factor(True_repetitions), y=RTms)) +
+    geom_violin(trim=FALSE, fill='#2F5597', alpha=0.8) +
+    ylim(0,4000) +
+    stat_summary(geom="point",fun.y=mean, size=4) +
+    theme_bw() + theme(panel.grid.minor = element_blank())
+#    facet_wrap(~pk,ncol=1)
+print(g)   
+
+d<-curr_data[curr_data$pk == "'NF'",]
+g <- ggplot(d, aes(x=factor(True_repetitions), y=RTms)) +
+    geom_violin(trim=FALSE, fill=colors_pk[2], alpha=0.8) +
+    ylim(0,4000) +
+    stat_summary(geom="point",fun.y=mean, size=4) +
+    theme_bw() + theme(panel.grid.minor = element_blank())
+#    facet_wrap(~pk,ncol=1)
+print(g) 
+
+g <- ggplot(curr_data, aes(x=factor(True_repetitions), y=RTms, color=pk)) +
+    geom_violin(trim=FALSE, alpha=0.8,position=position_dodge(width = 0.8)) +
+    stat_summary(geom="point",fun.y=mean, size=2, position=position_dodge(width = 0.8)) +
+    theme_bw() + theme(panel.grid.minor = element_blank()) +
+    scale_color_manual(values=c("#2F5597", "#ED7D2F"))
+#     labs(color = "Pair Taype")
+# 
+ print(g) #    scale_fill_manual(values= colors_pk)
+# gp <- ggpredict(pk_and_rep_mdl,c("True_repetitions","pk"))
+# g <- ggplot(gp, aes(x=x,y=predicted, color=group)) + 
+#     geom_line() + geom_smooth()+
+#     theme_classic()
+
+```
+
+## explicit memory
+```{r}
+#REPORTED IN FIG 1d:
+#analyse behavior - explicit memory test
+get_data <- read_excel("SOURCE_DATA.xlsx", sheet = "Fig1_d")
+#View(logRTsHalvesLearning)
+n=nrow(get_data)
+
+#ttest all rem FN vs. NN:
+t.test(get_data$all_remembered_PK,get_data$all_remembered_nPK,paired=TRUE)
+diff <- get_data$all_remembered_PK - get_data$all_remembered_nPK
+CohenD = mean(diff) / sd(diff)
+print(sprintf('CohenD is: %.2f',CohenD))
+
+#ttest all rem FN vs. chance:
+t.test(get_data$all_remembered_PK,get_data$chance,paired=TRUE)
+diff <- get_data$all_remembered_PK - get_data$chance
+CohenD = mean(diff) / sd(diff)
+print(sprintf('CohenD is: %.2f',CohenD))
+
+
+#ttest all rem NN vs. chance:
+t.test(get_data$all_remembered_nPK,get_data$chance,paired=TRUE)
+diff <- get_data$all_remembered_nPK - get_data$chance
+CohenD = mean(diff) / sd(diff)
+print(sprintf('CohenD is: %.2f',CohenD))
+
+#ttest HC FN vs. NN:
+t.test(get_data$PK_HC,get_data$nPK_HC,paired=TRUE)
+diff <- get_data$PK_HC - get_data$nPK_HC
+CohenD = mean(diff) / sd(diff)
+print(sprintf('CohenD is: %.2f',CohenD))
+
+## plot:
+myspec=c(rgb(237/255,125/255,47/255),rgb(47/255,81/255,151/255))
+mem_data <- select(get_data,c(subjects,PK_HC,nPK_HC)) %>%
+pivot_longer(c(PK_HC,nPK_HC),names_to = "Pair_type", values_to = "HC")
+
+data_sum <- mem_data %>%
+  group_by(Pair_type) %>%
+  summarise(mean_d = mean(HC),
+              SEM_d = sd(HC)/sqrt(n()),
+              n_data=n())
+
+#plot (w/ data points):
+plt_hc <- ggplot(data_sum, aes(x = Pair_type, y = mean_d, fill=Pair_type)) +
+  geom_col() +
+  geom_point(data = mem_data, aes(x = Pair_type, y = HC,color = Pair_type, fill=Pair_type), shape = 21, alpha = .8,size=2, position = position_jitter(width = .12)) +
+  geom_errorbar(aes(ymin = mean_d - SEM_d, ymax = mean_d + SEM_d),width=0,position = position_nudge(x = .2)) +
+  scale_fill_manual(values = myspec) +
+  scale_color_manual(values = c("black","black")) +
+  scale_x_discrete(limits=c("PK_HC","nPK_HC")) +
+  labs(x = NULL, y = 'Hits (high-confidence)') + 
+  theme_classic() + theme(legend.position = "none")
+```
+
+## All hipp regions ANOVA
+```{r}
+#this is not reported in full, but is mentioned in the discussion, I added a spreadsheet with the relevant data to the SOURCE_DATA file in the SEL git repository.
+get_data <- read_excel("SOURCE_DATA.xlsx", sheet = "allhipp_memory")
+rois=unique(get_data$roi)
+n=nrow(get_data[get_data$roi == 'left_ant',])
+#mdata <- melt(logRTsHalvesLearning, raw_labels=c("FN-first half","FN-second half"))
+#set up data for ANOVA:
+#run anova on each roi:
+for (roi in rois) {
+print(sprintf("anova for %s:",roi))
+d=get_data[get_data$roi == roi,]
+curr_data <- data.frame(
+    #FN_NN = factor(rep(1:2, each=19*2)),
+    pk = c(rep('FN', n*2),rep('NN', n*2)),
+    mem = rep(c(rep('HC', n),rep('miss', n)),2),
+    subject = factor(rep(1:n, 4)),
+    y = c(d$FF_HC, d$FF_FORG,d$NFF_HC, d$NFF_FORG))
+
+results.rmanova=aov(y ~ pk*mem + Error(subject/(pk*mem)), data = curr_data)
+print(summary(results.rmanova))
+eta_sq(results.rmanova, partial = TRUE)
+
+d <- d %>%
+  mutate(int_per_subj = (FF_HC - NFF_HC) - (FF_FORG-NFF_FORG),
+         hc_diff = FF_HC - NFF_HC) 
+
+curr_p <- ggplot(d, aes(x = 1, y = hc_diff)) +
+  geom_hline(yintercept=0, colour="black") +
+  geom_jitter(alpha = .6, width = .08,size = 2) +
+  scale_color_manual(values = "grey") +
+  xlim(.6, 1.4) +
+  labs(y = 'hc_diff') + 
+  theme_classic() + theme(legend.position = "none")
+
+}
+
+
+#3-way ANOVA with hipp roi as factor
+n=nrow(get_data)
+curr_data <- data.frame(
+    roi=c(rep(get_data$roi,4)),
+    pk = c(rep('FN', n*2),rep('NN', n*2)),
+    mem = rep(c(rep('HC', n),rep('miss', n)),2),
+    #subject = factor(rep(logRTsHalvesLearning$`Row Labels`, 4)),
+    subject = factor(rep(1:(n/4), 4*4)),
+    y = c(get_data$FF_HC, get_data$FF_FORG,get_data$NFF_HC, get_data$NFF_FORG))
+
+results.rmanova=aov(y ~ roi*pk*mem + Error(subject/(roi*pk*mem)), data = curr_data)
+print(summary(results.rmanova))
+
+```
+#left Ant hipp
+```{r}
+#I only used this script for the comparisons to shuffle. the rest is reported as in the matlab script, though it's the same.
+#REPORTED IN RESULTS, AND FIG1
+#Anova I took from the matlab script... had it there already
+get_data <- read_excel("SOURCE_DATA.xlsx", sheet = "Fig2_b")
+n=nrow(get_data)
+
+#paired comparisons in the left anterior hipp:
+d=get_data
+#ttest HC PK vs. nPK:
+t.test(d$PK_HC,d$nPK_HC,paired=TRUE)
+
+#ttest PK HC vs. miss:
+t.test(d$PK_HC,d$PK_FORG,paired=TRUE)
+
+#ttest nPK HC vs. miss:
+t.test(d$nPK_HC,d$nPK_FORG,paired=TRUE)
+
+#ttest PK HC vs. shuffle:
+t.test(d$PK_HC,d$PK_shuffle,paired=TRUE)
+diff <- d$PK_HC - d$PK_shuffle
+CohenD = mean(diff) / sd(diff)
+print(sprintf('CohenD is: %.2f',CohenD))
+
+#ttest nPK HC vs. shuffle:
+t.test(d$nPK_HC,d$nPK_shuffle,paired=TRUE)
+diff <- d$nPK_HC - d$nPK_shuffle
+CohenD = mean(diff) / sd(diff)
+print(sprintf('CohenD is: %.2f',CohenD))
+
+#create the plot jitter:
+d <- d %>%
+  mutate(hc_diff = PK_HC - nPK_HC) 
+
+curr_p <- ggplot(d, aes(x = 1, y = hc_diff)) +
+  geom_hline(yintercept=0, colour="black", linetype = "dotted") +
+  geom_jitter(alpha = .6, width = .08,size = 4) +
+  scale_color_manual(values = "grey") +
+  xlim(.6, 1.4) +
+  labs(y = 'hc_diff') + 
+  theme_classic() + theme(legend.position = "none")
+
+
+```
+
+#lifg - 12mm - Assymetry analysis:
+```{r}
+#lifg - 12mm - Assymetry analysis: THIS IS REPORTED FROM THE MATLAB SCRIPT, but based on this I made the plot, so I just run some tests to make sure it's the same.
+get_data <- read_excel("SOURCE_DATA.xlsx", sheet = "Fig3_b")
+n=nrow(get_data)
+
+#ttest PK assymetry from zero:
+t.test(get_data$PK_paired)
+CohenD = (mean(get_data$PK_paired) - 0) / sd(get_data$PK_paired)
+print(sprintf('CohenD is: %.2f',CohenD))
+
+#ttest PK assymetry from shuffle:
+t.test(get_data$PK_paired,get_data$PK_shuffled,paired=TRUE)
+
+#ttest nPK assymetry deom zero:
+t.test(get_data$nPK_paired)
+CohenD = (mean(get_data$nPK_paired) - 0) / sd(get_data$nPK_paired)
+print(sprintf('CohenD is: %.2f',CohenD))
+#ttest nPK assymetry from shuffle:
+t.test(get_data$nPK_paired, get_data$nPK_shuffled, paired=TRUE)
+
+d <- get_data %>%
+  mutate(FF_diff = get_data$PK_paired - get_data$PK_shuffled) 
+
+myspec=c(rgb(47/255,81/255,151/255))
+curr_p <- ggplot(d, aes(x = 1, y = FF_diff)) +
+  geom_hline(yintercept=0, colour="black") +
+  geom_jitter(alpha = 1, width = .08,size = 4) +
+  scale_color_manual(values = myspec) +
+  xlim(.6, 1.4) +
+  labs(y = 'PK Asymmetry (paired-shuffled)') + 
+  theme_classic() + theme(legend.position = "none")
+
+```
+#lifg - 12mm - asymm for supp fig 4
+```{r dot plot PK-paired/shuffled: B(post)-A(pre)}
+get_data <- read_excel("SOURCE_DATA.xlsx", sheet = "Supp_fig4")
+
+d <- get_data %>%
+  mutate(FF_diff = get_data$'PK-paired: B(post)-A(pre)' - get_data$'PK-shuffled: B(post)-A(pre)') 
+
+myspec=c(rgb(47/255,81/255,151/255))
+curr_p <- ggplot(d, aes(x = 1, y = FF_diff)) +
+  geom_hline(yintercept=0, colour="black") +
+  geom_jitter(alpha = 1, width = .08,size = 3) +
+  scale_color_manual(values = myspec) +
+  xlim(.6, 1.4) +
+  labs(y = 'PK B(post)-A(pre), paired vs. shuffled') + 
+  theme_classic() + theme(legend.position = "none")
+
+```
+
+
+## lifg asymm with hipp pre-post relationship
+```{r supplementary figure 2}
+# lifg asymm with hipp pre-post relationship
+lifg_data <- read_excel("AvBetas_PrePost_Mem_Asym_single_items_gPPI_lant_hipp_F_NF_lIFG_sphereBlownInSubjSpace_12_gm.xlsx", sheet = "Sheet1")
+hipp_data <- read_excel("AvBetas_PrePost_Mem_Asym_single_items_epi_lhipp_ant.xlsx", sheet = "Sheet1")
+all_data <- lifg_data
+all_data$hipp_prepostASS <- hipp_data$ASS
+all_data$hipp_prepostNONASS <- hipp_data$NONASS
+
+#clean up unknown famous face:
+all_data <- all_data %>%
+  filter(UnknownFamous == 1  )
+all_data <- all_data %>%
+  mutate(sc_asymAss=scale_by(all_data$Asym_ASS~subjects)) %>%
+  mutate(sc_hipp_prepost_Ass=scale_by(all_data$hipp_prepostASS~subjects)) %>%
+  mutate(ASS_NONASS_diff = Asym_ASS-Asym_NONASS) %>%
+  mutate(hipp_ASS_NONASS_diff = hipp_prepostASS-hipp_prepostNONASS)
+all_data <- all_data %>%
+  mutate(sc_diff = scale_by(ASS_NONASS_diff ~subjects)) %>%
+  mutate(sc_hipp_diff = scale_by(hipp_ASS_NONASS_diff ~subjects))
+
+#for the analysis of hipp separation predicts hipp assymetry, we just want PK, HC mem:
+curr_data <- all_data %>%
+  filter(memory == 2  ) %>%
+  filter(PK_nPK == 1  )
+
+#check it removed RM - because only HC:
+length(unique(curr_data$subjects)) #should be 18
+
+#set up lmer:
+#the subjects variable didn't exlpain much variance - which makes sense bc these are prepost diff.
+#the model was boundary singular, scaling didn't help, but I read a bit and it's not that bad in these cases: https://www.researchgate.net/post/What_does_singular_fit_mean_in_Mixed_Models
+
+#first, do only ass, remembered:
+null_mdl=lmer(Asym_ASS ~ 1 + (1|subjects), data = curr_data, REML = FALSE)
+brain_mdl=lmer(Asym_ASS ~ hipp_prepostASS + (1|subjects), data = curr_data, REML = FALSE)
+anova(null_mdl,brain_mdl)   
+
+#And, the interaction with forgotten was marginal: 
+curr_data <- all_data %>%
+  filter(memory != 1  ) %>%
+  filter(PK_nPK == 1  ) %>%
+  mutate(fac_mem = factor(memory))
+
+
+brain_mdl=lmer(Asym_ASS ~ hipp_prepostASS + memory + (1|subjects), data = curr_data, REML = FALSE)
+
+brain_by_mem_mdl=lmer(Asym_ASS ~ hipp_prepostASS * memory + (1|subjects), data = curr_data, REML = FALSE)
+anova(brain_by_mem_mdl,brain_mdl)   
+
+#THIS IS IN THE SUPP:
+mem_pk <- c(rgb(110/255,	170/255,	230/255),rgb(47/255,	85/255,	151/255))
+mem_pk <- c(rgb(200/255,	200/255,	200/255),rgb(47/255,	85/255,	151/255))
+ggplot(curr_data, aes(x=hipp_prepostASS, y=Asym_ASS,color=fac_mem)) + scale_x_reverse() +
+  scale_color_manual(values=mem_pk) +
+  geom_point() +
+  geom_smooth(method=lm) +
+  theme_classic()
+
+#Then, was also margnial for REMEMBERED the ASS-NONASS diff:
+curr_data <- all_data %>%
+  filter(memory == 2  ) %>%
+  filter(PK_nPK == 1  )
+null_mdl=lmer(ASS_NONASS_diff ~ 1 + (1|subjects), data = curr_data, REML = FALSE)
+brain_mdl=lmer(ASS_NONASS_diff ~ hipp_ASS_NONASS_diff + (1|subjects), data = curr_data, REML = FALSE)
+anova(null_mdl,brain_mdl)   
+
+```
